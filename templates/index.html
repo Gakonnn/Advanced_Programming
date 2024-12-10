@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Library CRUD</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #343a40;
+        }
+
+        header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 1rem 2rem;
+            text-align: center;
+        }
+
+        h1, h2 {
+            margin: 1rem 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        input, button {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            border: none;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: #f8f9fa;
+            margin-bottom: 0.5rem;
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .buttons button {
+            flex: none;
+            padding: 0.25rem 0.5rem;
+        }
+    </style>
+    <script>
+        async function fetchBooks() {
+            const response = await fetch('/books');
+            const books = await response.json();
+            const booksList = document.getElementById('booksList');
+            booksList.innerHTML = '';
+
+            books.forEach(book => {
+                const listItem = document.createElement('li');
+
+                // Создание кликабельной ссылки на книгу
+                const bookLink = document.createElement('a');
+                bookLink.textContent = `${book.name} (Рейтинг: ${book.rating})`;
+                bookLink.href = `/books/${book.id}`;  // Ссылка на страницу с подробной информацией
+                bookLink.style.textDecoration = 'none';  // Убираем подчеркивание
+                bookLink.style.color = '#007bff';  // Цвет ссылки
+
+                listItem.appendChild(bookLink);
+
+                // Добавление кнопок для обновления и удаления
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.classList.add('buttons');
+
+                const updateButton = document.createElement('button');
+                updateButton.textContent = 'Обновить';
+                updateButton.onclick = () => updateBook(book.id);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Удалить';
+                deleteButton.onclick = () => deleteBook(book.id);
+
+                buttonsDiv.appendChild(updateButton);
+                buttonsDiv.appendChild(deleteButton);
+                listItem.appendChild(buttonsDiv);
+                booksList.appendChild(listItem);
+            });
+        }
+
+
+        async function addBook() {
+            const bookName = document.getElementById('bookName').value;
+            const bookRating = parseFloat(document.getElementById('bookRating').value);
+            if (!bookName || isNaN(bookRating)) {
+                alert('Пожалуйста, заполните все поля корректно.');
+                return;
+            }
+
+            const newBook = { name: bookName, rating: bookRating };
+            const response = await fetch('/books', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newBook)
+            });
+
+            if (response.ok) {
+                alert('Книга добавлена!');
+                fetchBooks();
+            } else {
+                alert('Ошибка при добавлении книги!');
+            }
+        }
+
+        async function searchBook() {
+            const bookId = document.getElementById('bookId').value;
+            if (!bookId) {
+                alert('Введите ID книги');
+                return;
+            }
+
+            const response = await fetch(`/books/${bookId}`);
+            const book = await response.json();
+            const booksList = document.getElementById('booksList');
+            booksList.innerHTML = '';
+
+            if (book) {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${book.name} (Рейтинг: ${book.rating})`;
+                booksList.appendChild(listItem);
+            } else {
+                booksList.innerHTML = '<li>Книга не найдена.</li>';
+            }
+        }
+
+        async function updateBook(id) {
+            const newRating = prompt('Введите новый рейтинг:');
+            if (newRating === null) return;
+
+            const updatedBook = { rating: parseFloat(newRating) };
+            const response = await fetch(`/books?id=${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedBook)
+            });
+
+            if (response.ok) {
+                alert('Книга обновлена!');
+                fetchBooks();
+            } else {
+                alert('Ошибка при обновлении книги!');
+            }
+        }
+
+        async function deleteBook(id) {
+            if (!confirm('Вы уверены, что хотите удалить эту книгу?')) return;
+
+            const response = await fetch(`/books?id=${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                alert('Книга удалена!');
+                fetchBooks();
+            } else {
+                alert('Ошибка при удалении книги!');
+            }
+        }
+    </script>
+</head>
+<body>
+<header>
+    <h1>E-Library</h1>
+</header>
+<div class="container">
+    <h2>Добавить книгу</h2>
+    <label for="bookName">Название книги:</label>
+    <input type="text" id="bookName" placeholder="Введите название книги">
+    <label for="bookRating">Рейтинг:</label>
+    <input type="number" id="bookRating" placeholder="Введите рейтинг (0-5)" min="0" max="5" step="0.1">
+    <button onclick="addBook()">Добавить</button>
+
+    <h2>Поиск книги по ID</h2>
+    <label for="bookId">ID книги:</label>
+    <input type="number" id="bookId" placeholder="Введите ID">
+    <button onclick="searchBook()">Найти</button>
+
+    <h2>Список книг</h2>
+    <ul id="booksList"></ul>
+    <button onclick="fetchBooks()">Загрузить книги</button>
+</div>
+
+</body>
+</html>
